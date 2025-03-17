@@ -1,32 +1,32 @@
-import { Button, Modal, Pagination, Table } from "flowbite-react";
-import { useContext, useState } from "react";
+import {
+  Button,
+  Label,
+  Modal,
+  Pagination,
+  Select,
+  Table,
+  TextInput,
+  Toast,
+} from "flowbite-react";
+import { useContext, useEffect, useState } from "react";
 import { UserContext } from "../../contexts/UserContext";
 import { HiOutlineExclamationCircle } from "react-icons/hi";
 export function UserTableComponent() {
-  //   const [currentPage, setCurrentPage] = useState(1);
   const onPageChange = (page) => setCurrentPage(page);
   const [openModalDelete, setOpenModalDelete] = useState(false);
-  // Dummy Data (nanti bisa diganti dengan API atau state)
-  //   const users = [
-  //     {
-  //       email: "john@example.com",
-  //       username: "john_doe",
-  //       role: "Admin",
-  //       price: "$2999",
-  //     },
-  //     {
-  //       email: "jane@example.com",
-  //       username: "jane_doe",
-  //       role: "Editor",
-  //       price: "$1999",
-  //     },
-  //     {
-  //       email: "mike@example.com",
-  //       username: "mike_smith",
-  //       role: "Viewer",
-  //       price: "$99",
-  //     },
-  //   ];
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState("success");
+  const [openModalEdit, setOpenModalEdit] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    role: "",
+    isActive: true,
+  });
 
   const {
     users,
@@ -35,13 +35,92 @@ export function UserTableComponent() {
     currentPage,
     limit,
     setCurrentPage,
-    setLimit,
     totalUser,
     setTotalUser,
     selectedUser,
     deleteUser,
+    updateUser,
   } = useContext(UserContext);
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    setLoading(true);
+    try {
+      await deleteUser(userToDelete);
+
+      setToastMessage("User deleted successfully! ❌");
+      setToastType("success");
+
+      const newTotals = totalUser - 1;
+      setTotalUser(newTotals);
+
+      const maxPage = Math.ceil(newTotals / limit);
+
+      if (currentPage > maxPage) {
+        setCurrentPage(maxPage);
+      } else if (newTotals < limit && currentPage > 1) {
+        setCurrentPage(1);
+      }
+
+      fetchUsers(currentPage, limit);
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      setToastMessage("Failed to delete user!");
+      setToastType("error");
+    } finally {
+      setLoading(false);
+      setOpenModalDelete(false);
+      setShowToast(true);
+
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
+  const showModalEdit = async (userId) => {
+    setOpenModalEdit(true);
+    setSelectedUserId(userId);
+
+    await findUserById(userId);
+  };
+
+  const handleEditUser = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      await updateUser(selectedUserId, formData);
+
+      setToastMessage("User updated successfully!");
+      setToastType("success");
+
+      setLoading(false);
+
+      await fetchUsers(currentPage, limit);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setLoading(false);
+      setToastMessage("Failed to update user!");
+      setToastType("error");
+    } finally {
+      setLoading(false);
+      setOpenModalEdit(false);
+      setShowToast(true);
+
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedUser) {
+      setFormData({
+        username: selectedUser.username,
+        email: selectedUser.email,
+        role: selectedUser.role,
+        isActive: selectedUser.isActive,
+      });
+    }
+  }, [selectedUser]);
   return (
     <div className="overflow-x-auto bg-white dark:bg-gray-900 p-4 rounded-lg shadow-md">
       <Table hoverable className="w-full">
@@ -70,14 +149,19 @@ export function UserTableComponent() {
                 {user.isActive == true ? "Active" : "Inactive"}
               </Table.Cell>
               <Table.Cell className="flex space-x-4">
-                <a
-                  href="#"
+                <button
+                  onClick={() => {
+                    showModalEdit(user.id);
+                  }}
                   className="text-cyan-600 hover:underline dark:text-cyan-500"
                 >
                   Edit
-                </a>
+                </button>
                 <button
-                  onClick={() => setOpenModalDelete(true)}
+                  onClick={() => {
+                    setUserToDelete(user.id);
+                    setOpenModalDelete(true);
+                  }}
                   className="text-red-600 hover:underline dark:text-red-500"
                 >
                   Delete
@@ -92,11 +176,12 @@ export function UserTableComponent() {
       <div className="flex justify-end mt-4">
         <Pagination
           currentPage={currentPage}
-          totalPages={10}
+          totalPages={totalUser}
           onPageChange={onPageChange}
         />
       </div>
 
+      {/* Modal Delete */}
       <Modal
         show={openModalDelete}
         size="md"
@@ -111,8 +196,12 @@ export function UserTableComponent() {
               Are you sure you want to delete this user?
             </h3>
             <div className="flex justify-center gap-4">
-              <Button color="failure" onClick={() => setOpenModalDelete(false)}>
-                {"Yes, I'm sure"}
+              <Button
+                color="failure"
+                onClick={handleDeleteUser}
+                disabled={loading}
+              >
+                {loading ? "Deleting..." : "Yes, I'm sure"}
               </Button>
               <Button color="gray" onClick={() => setOpenModalDelete(false)}>
                 No, cancel
@@ -121,6 +210,90 @@ export function UserTableComponent() {
           </div>
         </Modal.Body>
       </Modal>
+
+      {/* Modal Edit */}
+      <Modal show={openModalEdit} onClose={() => setOpenModalEdit(false)}>
+        <Modal.Header>Edit User</Modal.Header>
+        <Modal.Body>
+          <form onSubmit={handleEditUser} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="username" value="Username" />
+                <TextInput
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
+                  placeholder="Enter username"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="email" value="Email" />
+                <TextInput
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="Enter email"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="role" value="Role" />
+                <TextInput
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={(e) =>
+                    setFormData({ ...formData, role: e.target.value })
+                  }
+                  placeholder="Enter role"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="Status" value="Status" />
+                <Select
+                  id="isActive"
+                  name="isActive"
+                  value={formData.isActive.toString()}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      isActive: e.target.value === "true",
+                    })
+                  }
+                  required
+                >
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="submit" color="blue" disabled={loading}>
+                {loading ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </form>
+        </Modal.Body>
+      </Modal>
+
+      {showToast && (
+        <div className="fixed top-4 right-4">
+          <Toast>{toastMessage}</Toast>
+        </div>
+      )}
     </div>
   );
 }

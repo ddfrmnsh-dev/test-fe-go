@@ -10,7 +10,6 @@ export const UserProvider = ({ children }) => {
   const [totalUser, setTotalUser] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(5);
-  //   const [apiMessage, contextHolder] = message.useMessage();
   const [hasFetched, setHasFetched] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -21,16 +20,14 @@ export const UserProvider = ({ children }) => {
       try {
         const response = await userApi.getAllUser({ page, limit });
         console.log("Response:", response);
-        setUsers(response.data);
+        setUsers(response.data.users);
         setTotalUser(response.data.total);
 
         if (!hasFetched) {
-          //   apiMessage.success("Data’s locked and loaded!");
-          setHasFetched(true); // Update status hasFetched agar pesan tidak ditampilkan lagi
+          setHasFetched(true);
         }
       } catch (error) {
         isTokenExpired();
-        // apiMessage.error("Uh-oh! Failed to fetch the data.");
         console.error("Failed to fetch users:", error);
       }
     },
@@ -47,6 +44,7 @@ export const UserProvider = ({ children }) => {
     try {
       const response = await userApi.createUser(user);
       setUsers([...users, response.data]);
+      return response;
     } catch (error) {
       console.error("Failed to create user:", error);
     }
@@ -101,7 +99,6 @@ export const UserProvider = ({ children }) => {
         deleteUser,
       }}
     >
-      {/* {contextHolder} */}
       {children}
     </UserContext.Provider>
   );
