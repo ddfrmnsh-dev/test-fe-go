@@ -1,18 +1,10 @@
 import Navbar from "./Navbar";
 import { Link } from "react-router-dom";
 import { Sidebar } from "flowbite-react";
-import {
-  HiArrowSmRight,
-  HiChartPie,
-  HiInbox,
-  HiOutlineMinusSm,
-  HiOutlinePlusSm,
-  HiShoppingBag,
-  HiTable,
-  HiUser,
-} from "react-icons/hi";
+import { HiLogout, HiUser } from "react-icons/hi";
 import { twMerge } from "tailwind-merge";
 import Navbars from "./Navbar";
+import { useAuth } from "../../hooks/useAuth";
 
 const customTheme = {
   root: {
@@ -94,7 +86,13 @@ const customTheme = {
     img: "mr-3 h-6 sm:h-7",
   },
 };
+
 const Sidebars = () => {
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
   return (
     <>
       {/* <Navbars /> */}
@@ -107,6 +105,9 @@ const Sidebars = () => {
           <Sidebar.ItemGroup>
             <Sidebar.Item as={Link} to="/users" icon={HiUser}>
               Users
+            </Sidebar.Item>
+            <Sidebar.Item onClick={handleLogout} icon={HiLogout}>
+              Logout
             </Sidebar.Item>
           </Sidebar.ItemGroup>
         </Sidebar.Items>
