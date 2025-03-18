@@ -57,6 +57,7 @@ export function UserTableComponent() {
 
       const maxPage = Math.ceil(newTotals / limit);
 
+      console.log("maxPage", maxPage);
       if (currentPage > maxPage) {
         setCurrentPage(maxPage);
       } else if (newTotals < limit && currentPage > 1) {
@@ -110,6 +111,10 @@ export function UserTableComponent() {
       setTimeout(() => setShowToast(false), 3000);
     }
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, []);
 
   useEffect(() => {
     if (selectedUser) {
@@ -176,7 +181,7 @@ export function UserTableComponent() {
       <div className="flex justify-end mt-4">
         <Pagination
           currentPage={currentPage}
-          totalPages={totalUser}
+          totalPages={Math.ceil(totalUser / limit)}
           onPageChange={onPageChange}
         />
       </div>
