@@ -3,11 +3,28 @@ import { AuthContext } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import axios from "axios";
-import { Button, Table } from "flowbite-react";
+import { Alert, Button, Card, Label, Table, TextInput } from "flowbite-react";
 
+const customTheme = {
+  root: {
+    base: "flex w-full max-w-sm p-2 rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800",
+    children: "flex h-full flex-col justify-center gap-4 p-6",
+    horizontal: {
+      off: "flex-col",
+      on: "flex-col md:max-w-xl md:flex-row",
+    },
+    href: "hover:bg-gray-100 dark:hover:bg-gray-700",
+  },
+  img: {
+    base: "",
+    horizontal: {
+      off: "rounded-t-lg",
+      on: "h-96 w-full rounded-t-lg object-cover md:h-auto md:w-48 md:rounded-none md:rounded-l-lg",
+    },
+  },
+};
 const LoginPage = () => {
   const baseUrl = "http://localhost:8888";
-  // const [confirmLoading, setConfirmLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
   const { isAuthenticated, setIsLoading } = useAuth();
@@ -15,6 +32,8 @@ const LoginPage = () => {
     email: "",
     password: "",
   });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -32,12 +51,17 @@ const LoginPage = () => {
       if (response.status === 200) {
         const { userPrincipal, token } = response.data.data;
 
-        login(userPrincipal, token);
-        navigate("/users");
+        setSuccess(response.data.message);
+
+        setTimeout(() => {
+          login(userPrincipal, token);
+          navigate("/users");
+        }, 1000);
       }
       setIsLoading(false);
     } catch (error) {
       console.error("Error submitting form:", error);
+      setError(error.response.data.message);
     }
   };
 
@@ -48,51 +72,48 @@ const LoginPage = () => {
     }
   }, [isAuthenticated, navigate]);
   return (
-    <div className="bg-gray-900 h-screen flex items-center justify-center">
-      <form
-        className="max-w-sm w-full bg-gray-800 p-6 rounded-lg shadow-md"
-        onSubmit={handleSubmit}
-      >
-        <div className="mb-5">
-          <label
-            htmlFor="email"
-            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-          >
-            Your email
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            placeholder="admin@admin.com"
-            required
-            onChange={handleChange}
-          />
-        </div>
-        <div className="mb-5">
-          <label
-            htmlFor="password"
-            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-          >
-            Your password
-          </label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            required
-            onChange={handleChange}
-          />
-        </div>
-        <button
-          type="submit"
-          className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-        >
-          Submit
-        </button>
-      </form>
+    <div className="bg-white flex h-screen items-center justify-center">
+      <Card className="max-w-md" theme={customTheme}>
+        {error && ( // Tampilkan Alert jika error tidak kosong
+          <Alert color="failure" onDismiss={() => setError("")}>
+            {error}
+          </Alert>
+        )}
+
+        {success && (
+          <Alert color="success" onDismiss={() => setSuccess("")}>
+            {success}
+          </Alert>
+        )}
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          <div>
+            <div className="mb-2 block">
+              <Label htmlFor="email1" value="Your email" />
+            </div>
+            <TextInput
+              id="email1"
+              type="email"
+              name="email"
+              placeholder="admin@admin.com"
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div>
+            <div className="mb-2 block">
+              <Label htmlFor="password1" value="Your password" />
+            </div>
+            <TextInput
+              id="password1"
+              type="password"
+              required
+              name="password"
+              onChange={handleChange}
+            />
+          </div>
+          <Button type="submit">Submit</Button>
+        </form>
+      </Card>
     </div>
   );
 };
